@@ -1,15 +1,15 @@
 package database
 
 import (
-	"database/sql"
 	"log"
 	"os"
 
 	"github.com/google/uuid"
-	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-type Message struct {
+type MessagePlain struct {
 	ID         uuid.UUID
 	SenderID   uuid.UUID
 	ReceiverID uuid.UUID
@@ -20,24 +20,21 @@ type Message struct {
 }
 
 type PostgresMessage struct {
-	db *sql.DB
+	db *gorm.DB
 }
-type Messages interface {
-	CreateMessage(*Message) error
+type MessageOperations interface {
+	CreateMessage(*MessagePlain) error
 }
 
 func NewPostgresMessage() (*PostgresMessage, error) {
-	conn, err := sql.Open("postgres", os.Getenv("DB_STRING"))
+	conn, err := gorm.Open(postgres.Open(os.Getenv("DB_STRING")), &gorm.Config{})
 	if err != nil {
 		log.Fatal(err)
-	}
-	if err := conn.Ping(); err != nil {
-		return nil, err
 	}
 	connection := &PostgresMessage{db: conn}
 	return connection, err
 }
 
-func (mess *PostgresMessage) CreateMessage(m *Message) error {
+func (mess *PostgresMessage) CreateMessage(m *MessagePlain) error {
 	return nil
 }

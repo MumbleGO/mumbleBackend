@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -12,13 +13,26 @@ import (
 func (s *Server) Handlers() *mux.Router {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/api/user", utils.MakeHTTPHandleFunc(s.handleRegisterUser)).Methods("POST")
+	router.HandleFunc("/api/signup", utils.MakeHTTPHandleFunc(s.handleSignUp)).Methods("POST")
 	return router
 }
 
-func (s *Server) handleRegisterUser(w http.ResponseWriter, r *http.Request) error {
-	user := new(database.User)
-	err := s.user.RegisterUser(user)
+func (s *Server) handleSignUp(w http.ResponseWriter, r *http.Request) error {
+	user := new(database.UserPlain)
+	err := json.NewDecoder(r.Body).Decode(user)
+	if err != nil {
+		return err
+	}
+	err = database.Validate(user)
+	if err != nil {
+		return utils.WriteJson(
+			w,
+			http.StatusBadRequest,
+			utils.ApiError{ErrorMessage: "check the credentials again"},
+		)
+	}
+
+	err = s.user.SignUp(user, w)
 	if err != nil {
 		return err
 	}

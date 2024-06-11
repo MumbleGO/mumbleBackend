@@ -9,11 +9,11 @@ import (
 
 type Server struct {
 	listenAddr string
-	user       database.Users
-	messages   database.Messages
+	user       database.UserOperations
+	messages   database.MessageOperations
 }
 
-func NewServer(listenAddr string, u database.Users, m database.Messages) *Server {
+func NewServer(listenAddr string, u database.UserOperations, m database.MessageOperations) *Server {
 	return &Server{
 		listenAddr: listenAddr,
 		user:       u,

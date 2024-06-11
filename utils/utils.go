@@ -14,14 +14,14 @@ func WriteJson(w http.ResponseWriter, status int, v any) error {
 func MakeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := f(w, r); err != nil {
-			WriteJson(w, http.StatusBadRequest, apiError{error: err.Error()})
+			WriteJson(w, http.StatusBadRequest, ApiError{ErrorMessage: err.Error()})
 		}
 	}
 }
 
 type (
 	apiFunc  func(w http.ResponseWriter, r *http.Request) error
-	apiError struct {
-		error string
+	ApiError struct {
+		ErrorMessage string `json:"error"`
 	}
 )
