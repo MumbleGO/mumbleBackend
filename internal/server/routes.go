@@ -13,7 +13,7 @@ import (
 func (s *Server) Handlers() *mux.Router {
 	router := mux.NewRouter()
 
-	router.HandleFunc("/api/signup", utils.MakeHTTPHandleFunc(s.handleSignUp)).Methods("POST")
+	router.HandleFunc("/api/auth/signup", utils.MakeHTTPHandleFunc(s.handleSignUp)).Methods("POST")
 	return router
 }
 

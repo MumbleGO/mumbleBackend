@@ -2,10 +2,8 @@ package database
 
 import (
 	"log"
-	"os"
 
 	"github.com/google/uuid"
-	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
@@ -27,7 +25,7 @@ type MessageOperations interface {
 }
 
 func NewPostgresMessage() (*PostgresMessage, error) {
-	conn, err := gorm.Open(postgres.Open(os.Getenv("DB_STRING")), &gorm.Config{})
+	conn, err := ExpoDB()
 	if err != nil {
 		log.Fatal(err)
 	}

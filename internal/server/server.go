@@ -1,8 +1,13 @@
 package server
 
 import (
-	"fmt"
+	"context"
+	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/inodinwetrust10/mumbleBackend/internal/database"
 )
@@ -21,12 +26,30 @@ func NewServer(listenAddr string, u database.UserOperations, m database.MessageO
 	}
 }
 
-func (s *Server) Run() error {
+func (s *Server) Run() {
 	router := s.Handlers()
 	server := &http.Server{
 		Addr:    s.listenAddr,
 		Handler: router,
 	}
-	fmt.Print("listening to port ")
-	return server.ListenAndServe()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, os.Interrupt, syscall.SIGTERM)
+
+	go func() {
+		log.Println("Starting the server on port 3000")
+		if err := server.ListenAndServe(); err != nil {
+			log.Printf("Server Error: %v", err)
+		}
+	}()
+
+	<-stop
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	log.Println("Shutting down the server...")
+	if err := server.Shutdown(ctx); err != nil {
+		log.Printf("Server shutdown error: %v", err)
+	} else {
+		log.Println("Server gracefully stopped")
+	}
 }

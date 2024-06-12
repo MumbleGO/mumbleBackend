@@ -12,6 +12,7 @@ import (
 
 func main() {
 	godotenv.Load("./../../.env")
+	database.Migrate()
 	userDB, err := database.NewPostgresUser()
 	if err != nil {
 		log.Println(err)
@@ -21,8 +22,5 @@ func main() {
 		log.Println(err)
 	}
 	ser := server.NewServer(os.Getenv("PORT"), userDB, messageDB)
-	err = ser.Run()
-	if err != nil {
-		log.Fatal("error listening to server")
-	}
+	ser.Run()
 }
