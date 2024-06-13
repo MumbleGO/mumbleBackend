@@ -1,7 +1,6 @@
 package database
 
 import (
-	"errors"
 	"log"
 	"os"
 	"time"
@@ -10,6 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// /////////////////////////////////////////////////////////////////////////////////////
 type User struct {
 	ID            string `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
 	Username      string `gorm:"unique"`
@@ -23,6 +23,21 @@ type User struct {
 	UpdatedAt     time.Time      `gorm:"autoUpdateTime"`
 }
 
+type UserPlain struct {
+	ID              string `json:"id,omitempty"`
+	Username        string `json:"username,omitempty"`
+	FullName        string `json:"fullname,omitempty"`
+	Password        string `json:"password,omitempty"`
+	ConfirmPassword string `json:"confirmPassword,omitempty"`
+	Gender          string `json:"gender,omitempty"`
+	ProfilePic      string `json:"profile_picture,omitempty"`
+}
+
+type PostgresUser struct {
+	db *gorm.DB
+}
+
+// /////////////////////////////////////////////////////////////////////////////////////
 // Conversation model
 type Conversation struct {
 	ID           string    `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
@@ -61,35 +76,12 @@ func ExpoDB() (*gorm.DB, error) {
 }
 
 // ////////////////////////////////////////////////////////////////////////////////////
-func Validate(u *UserPlain) error {
-	if u.Username == "" {
-		return errors.New("username cannot be empty")
-	}
-	if u.FullName == "" {
-		return errors.New("full_name cannot be empty")
-	}
-	if u.Password == "" {
-		return errors.New("password cannot be empty")
-	}
-	if u.ConfirmPassword == "" {
-		return errors.New("password cannot be empty")
-	}
-	if u.Gender == "" {
-		return errors.New("gender cannot be empty")
-	}
-	if u.ConfirmPassword != u.Password {
-		return errors.New("passwords are not same")
-	}
-	return nil
-}
 
 func Migrate() {
 	db, err := ExpoDB()
 	if err := db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`).Error; err != nil {
 		log.Fatal("Failed to enable UUID extension:", err)
 	}
-
-	// Create gender enum type if it doesn't exist
 	if err := db.Exec(`DO $$ BEGIN
 		IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'gender') THEN
 			CREATE TYPE gender AS ENUM ('male', 'female');

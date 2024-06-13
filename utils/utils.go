@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -24,13 +25,27 @@ func MakeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 }
 
 // generating jwt token
-func GenerateJWT(username string, secretKey string) (string, error) {
+func GenerateJWT(username string, w http.ResponseWriter) error {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"username": username,
 		"exp":      time.Now().Add(time.Hour * 24).Unix(), // Token expires in 24 hours
 	})
 
-	return token.SignedString([]byte(secretKey))
+	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
+	if err != nil {
+		return err
+	}
+
+	// attaching the jwt token to the response w using cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "token",
+		Value:    tokenString,
+		Expires:  time.Now().Add(24 * time.Hour),
+		HttpOnly: true,
+		Secure:   false,
+		Path:     "/",
+	})
+	return nil
 }
 
 // validating token

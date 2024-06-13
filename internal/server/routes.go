@@ -1,7 +1,6 @@
 package server
 
 import (
-	"encoding/json"
 	"net/http"
 
 	"github.com/gorilla/mux"
@@ -14,16 +13,18 @@ func (s *Server) Handlers() *mux.Router {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/api/auth/signup", utils.MakeHTTPHandleFunc(s.handleSignUp)).Methods("POST")
+	router.HandleFunc("/api/auth/login", utils.MakeHTTPHandleFunc(s.handleLogin)).Methods("POST")
+	router.HandleFunc("/api/auth/logout", utils.MakeHTTPHandleFunc(s.handleLogout)).Methods("POST")
 	return router
 }
 
+// /////////////////////////////////////////////////////////////////////////////////////
 func (s *Server) handleSignUp(w http.ResponseWriter, r *http.Request) error {
-	user := new(database.UserPlain)
-	err := json.NewDecoder(r.Body).Decode(user)
+	user, err := database.DecodeUser(r)
 	if err != nil {
 		return err
 	}
-	err = database.Validate(user)
+	err = database.ValidateUser(user)
 	if err != nil {
 		return utils.WriteJson(
 			w,
@@ -33,6 +34,29 @@ func (s *Server) handleSignUp(w http.ResponseWriter, r *http.Request) error {
 	}
 
 	err = s.user.SignUp(user, w)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// /////////////////////////////////////////////////////////////////////////////////////
+func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request) error {
+	user, err := database.DecodeUser(r)
+	if err != nil {
+		return err
+	}
+	err = s.user.Login(user, w)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// /////////////////////////////////////////////////////////////////////////////////////
+func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) error {
+	err := s.user.Logout(w)
 	if err != nil {
 		return err
 	}

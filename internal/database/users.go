@@ -1,10 +1,10 @@
 package database
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -13,20 +13,10 @@ import (
 	"github.com/inodinwetrust10/mumbleBackend/utils"
 )
 
-type UserPlain struct {
-	Username        string `json:"username"`
-	FullName        string `json:"fullname"`
-	Password        string `json:"password"`
-	ConfirmPassword string `json:"confirmPassword"`
-	Gender          string `json:"gender"`
-}
-
-type PostgresUser struct {
-	db *gorm.DB
-}
-
 type UserOperations interface {
 	SignUp(*UserPlain, http.ResponseWriter) error
+	Login(*UserPlain, http.ResponseWriter) error
+	Logout(http.ResponseWriter) error
 }
 
 func NewPostgresUser() (*PostgresUser, error) {
@@ -38,8 +28,31 @@ func NewPostgresUser() (*PostgresUser, error) {
 	return connection, err
 }
 
-// /////////////////////////////////////////////////////////////////////////////////////
+// ////////////////////////////////////////////////////////////////////////////////////
 
+func ValidateUser(u *UserPlain) error {
+	if u.Username == "" {
+		return errors.New("username cannot be empty")
+	}
+	if u.FullName == "" {
+		return errors.New("full_name cannot be empty")
+	}
+	if u.Password == "" {
+		return errors.New("password cannot be empty")
+	}
+	if u.ConfirmPassword == "" {
+		return errors.New("password cannot be empty")
+	}
+	if u.Gender == "" {
+		return errors.New("gender cannot be empty")
+	}
+	if u.ConfirmPassword != u.Password {
+		return errors.New("passwords are not same")
+	}
+	return nil
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////
 func (u *PostgresUser) SignUp(user *UserPlain, w http.ResponseWriter) error {
 	var existingUser User
 	err := u.db.Where("username = ?", user.Username).First(&existingUser).Error
@@ -48,7 +61,7 @@ func (u *PostgresUser) SignUp(user *UserPlain, w http.ResponseWriter) error {
 		return utils.WriteJson(
 			w,
 			http.StatusBadRequest,
-			utils.ApiError{ErrorMessage: "user already exists"},
+			utils.ApiError{ErrorMessage: "username already taken"},
 		)
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		// An error other than "record not found" occurred
@@ -91,19 +104,88 @@ func (u *PostgresUser) SignUp(user *UserPlain, w http.ResponseWriter) error {
 	if err := u.db.Create(newUser).Error; err != nil {
 		return err
 	}
-	tokenString, err := utils.GenerateJWT(newUser.Username, os.Getenv("JWT_SECRET"))
+	err = utils.GenerateJWT(newUser.Username, w)
 	if err != nil {
 		return err
 	}
 
-	// attaching the jwt token to the response w using cookie
+	return utils.WriteJson(
+		w,
+		http.StatusCreated,
+		&UserPlain{
+			ID:         newUser.ID,
+			FullName:   newUser.FullName,
+			Username:   newUser.Username,
+			ProfilePic: newUser.ProfilePic,
+			Gender:     string(newUser.Gender),
+		},
+	)
+}
+
+// ////////////////////////////////////////////////////////////////////////////////////
+func (pu *PostgresUser) Login(u *UserPlain, w http.ResponseWriter) error {
+	var existingUser User
+	err := pu.db.Where("username = ?", u.Username).First(&existingUser).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// User does not exists
+		return utils.WriteJson(
+			w,
+			http.StatusNotFound,
+			utils.ApiError{ErrorMessage: "No account found with this username"},
+		)
+	} else if err != nil {
+		return utils.WriteJson(w, http.StatusNotFound, utils.ApiError{ErrorMessage: "Error in fetching the user"})
+	}
+
+	err = bcrypt.CompareHashAndPassword([]byte(existingUser.Password), []byte(u.Password))
+	if err != nil {
+		return utils.WriteJson(
+			w,
+			http.StatusUnauthorized,
+			utils.ApiError{ErrorMessage: "Wrong username or password"},
+		)
+	}
+
+	err = utils.GenerateJWT(u.Username, w)
+	if err != nil {
+		return err
+	}
+	return utils.WriteJson(
+		w,
+		http.StatusOK,
+		&UserPlain{
+			ID:         existingUser.ID,
+			FullName:   existingUser.FullName,
+			Username:   existingUser.Username,
+			ProfilePic: existingUser.ProfilePic,
+		},
+	)
+}
+
+// ///////////////////////////////////////////////////////////////////////////////////
+func (u *PostgresUser) Logout(w http.ResponseWriter) error {
 	http.SetCookie(w, &http.Cookie{
 		Name:     "token",
-		Value:    tokenString,
-		Expires:  time.Now().Add(24 * time.Hour),
+		Value:    "",
+		Expires:  time.Unix(0, 0),
+		Path:     "/",
 		HttpOnly: true,
 		Secure:   false,
-		Path:     "/",
+		SameSite: http.SameSiteStrictMode,
 	})
-	return utils.WriteJson(w, http.StatusCreated, newUser)
+	return utils.WriteJson(
+		w,
+		http.StatusOK,
+		map[string]string{"message": "logged out successfully"},
+	)
+}
+
+// ////////////////////////////////////////////////////////////////////////////////////
+func DecodeUser(r *http.Request) (*UserPlain, error) {
+	user := new(UserPlain)
+	err := json.NewDecoder(r.Body).Decode(user)
+	if err != nil {
+		return nil, err
+	}
+	return user, nil
 }
