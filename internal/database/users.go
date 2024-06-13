@@ -17,6 +17,7 @@ type UserOperations interface {
 	SignUp(*UserPlain, http.ResponseWriter) error
 	Login(*UserPlain, http.ResponseWriter) error
 	Logout(http.ResponseWriter) error
+	GetMe(string, http.ResponseWriter) error
 }
 
 func NewPostgresUser() (*PostgresUser, error) {
@@ -177,6 +178,33 @@ func (u *PostgresUser) Logout(w http.ResponseWriter) error {
 		w,
 		http.StatusOK,
 		map[string]string{"message": "logged out successfully"},
+	)
+}
+
+// /////////////////////////////////////////////////////////////////////////////////
+func (u *PostgresUser) GetMe(username string, w http.ResponseWriter) error {
+	var existingUser User
+	err := u.db.Where("username = ?", username).First(&existingUser).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// User does not exists
+		return utils.WriteJson(
+			w,
+			http.StatusNotFound,
+			utils.ApiError{ErrorMessage: "No account found with this username"},
+		)
+	} else if err != nil {
+		return utils.WriteJson(w, http.StatusNotFound, utils.ApiError{ErrorMessage: "Error in fetching the user"})
+	}
+
+	return utils.WriteJson(
+		w,
+		http.StatusOK,
+		&UserPlain{
+			ID:         existingUser.ID,
+			FullName:   existingUser.FullName,
+			Username:   existingUser.Username,
+			ProfilePic: existingUser.ProfilePic,
+		},
 	)
 }
 
