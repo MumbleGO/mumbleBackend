@@ -105,7 +105,10 @@ func (u *PostgresUser) SignUp(user *UserPlain, w http.ResponseWriter) error {
 	if err := u.db.Create(newUser).Error; err != nil {
 		return err
 	}
-	err = utils.GenerateJWT(newUser.Username, w)
+	var newExistingUser User
+	u.db.Where("username = ?", newUser.Username).First(&newExistingUser)
+
+	err = utils.GenerateJWT(newExistingUser.ID, w)
 	if err != nil {
 		return err
 	}
@@ -147,7 +150,7 @@ func (pu *PostgresUser) Login(u *UserPlain, w http.ResponseWriter) error {
 		)
 	}
 
-	err = utils.GenerateJWT(u.Username, w)
+	err = utils.GenerateJWT(existingUser.ID, w)
 	if err != nil {
 		return err
 	}
@@ -182,9 +185,9 @@ func (u *PostgresUser) Logout(w http.ResponseWriter) error {
 }
 
 // /////////////////////////////////////////////////////////////////////////////////
-func (u *PostgresUser) GetMe(username string, w http.ResponseWriter) error {
+func (u *PostgresUser) GetMe(id string, w http.ResponseWriter) error {
 	var existingUser User
-	err := u.db.Where("username = ?", username).First(&existingUser).Error
+	err := u.db.Where("id = ?", id).First(&existingUser).Error
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		// User does not exists
 		return utils.WriteJson(

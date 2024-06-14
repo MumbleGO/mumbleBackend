@@ -5,17 +5,23 @@ import (
 	"os"
 	"time"
 
+	"github.com/google/uuid"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 // /////////////////////////////////////////////////////////////////////////////////////
+type UserInfo struct {
+	ID         string `json:"id"`
+	FullName   string `json:"fullName"`
+	ProfilePic string `json:"profilePic"`
+}
 type User struct {
 	ID            string `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
 	Username      string `gorm:"unique"`
 	FullName      string
 	Password      string
-	Gender        Gender `gorm:"type:gender"`
+	Gender        Gender `gorm:"type:gender;default:'male'"`
 	ProfilePic    string
 	Conversations []Conversation `gorm:"many2many:user_conversations;constraint:OnDelete:CASCADE"`
 	Messages      []Message      `gorm:"foreignKey:SenderID;constraint:OnDelete:CASCADE"`
@@ -57,6 +63,19 @@ type Message struct {
 	Body           string
 	CreatedAt      time.Time `gorm:"autoCreateTime"`
 	UpdatedAt      time.Time `gorm:"autoUpdateTime"`
+}
+type MessagePlain struct {
+	ID         uuid.UUID `json:"id,omitempty"`
+	SenderID   uuid.UUID `json:"sender_id,omitempty"`
+	ReceiverID uuid.UUID `json:"receiver_id,omitempty"`
+	Content    string    `json:"message,omitempty"`
+	Timestamp  string    `json:"time,omitempty"`
+	IsFile     bool      `json:"file,omitempty"`
+	FilePath   string    `json:"filePath,omitempty"`
+}
+
+type PostgresMessage struct {
+	db *gorm.DB
 }
 
 // Gender type

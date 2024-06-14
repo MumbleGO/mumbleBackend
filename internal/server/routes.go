@@ -18,6 +18,16 @@ func (s *Server) Handlers() *mux.Router {
 	router.HandleFunc("/api/auth/logout", utils.MakeHTTPHandleFunc(s.handleLogout)).Methods("POST")
 	router.Handle("/api/auth/me", middleware.AuthMiddleware(utils.MakeHTTPHandleFunc(s.handleMe))).
 		Methods("GET")
+
+	router.Handle("/api/message/conversations", middleware.AuthMiddleware(utils.MakeHTTPHandleFunc(s.handleGetUserForSidebar))).
+		Methods("GET")
+
+	router.Handle("/api/message/send/{id}", middleware.AuthMiddleware(utils.MakeHTTPHandleFunc(s.handleSendMessage))).
+		Methods("POST")
+
+	router.Handle("/api/message/{id}", middleware.AuthMiddleware(utils.MakeHTTPHandleFunc(s.handleGetMessage))).
+		Methods("GET")
+
 	return router
 }
 
@@ -69,7 +79,49 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) error {
 /////////////////////////////////////////////////////////////////////////////////////
 
 func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) error {
-	username := r.Context().Value("username").(string)
-	err := s.user.GetMe(username, w)
+	id := r.Context().Value("id").(string)
+	err := s.user.GetMe(id, w)
 	return err
+}
+
+// ////////////////////////////////////////////////////////////////////////////////////
+func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) error {
+	receiverID, senderID := getID(r)
+	message, err := database.DecodeMessage(r)
+	if err != nil {
+		return err
+	}
+	err = s.messages.SendMessage(message, senderID, receiverID, w)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+/////////////////////////////////////////////////////////////////////////////////////
+
+func (s *Server) handleGetMessage(w http.ResponseWriter, r *http.Request) error {
+	userToChatID, senderID := getID(r)
+	err := s.messages.GetMessage(userToChatID, senderID, w)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// ////////////////////////////////////////////////////////////////////////////////////
+func (s *Server) handleGetUserForSidebar(w http.ResponseWriter, r *http.Request) error {
+	_, authUser := getID(r)
+	err := s.messages.GetUserForSidebar(authUser, w)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func getID(r *http.Request) (string, string) {
+	userToChatID := mux.Vars(r)["id"]
+	senderID := r.Context().Value("id").(string)
+	return userToChatID, senderID
 }

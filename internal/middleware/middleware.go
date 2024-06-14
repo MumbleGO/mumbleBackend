@@ -10,7 +10,6 @@ import (
 	"github.com/inodinwetrust10/mumbleBackend/utils"
 )
 
-// AuthMiddleware is a middleware function to validate JWT tokens from cookies.
 func AuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// Get token from cookies
@@ -34,7 +33,7 @@ func AuthMiddleware(next http.Handler) http.Handler {
 			http.Error(w, "Unauthorized - Invalid token", http.StatusUnauthorized)
 			return
 		}
-		ctx := context.WithValue(r.Context(), "username", claims["username"].(string))
+		ctx := context.WithValue(r.Context(), "id", claims["id"].(string))
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})
 }

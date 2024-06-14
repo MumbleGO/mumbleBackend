@@ -25,10 +25,10 @@ func MakeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
 }
 
 // generating jwt token
-func GenerateJWT(username string, w http.ResponseWriter) error {
+func GenerateJWT(id string, w http.ResponseWriter) error {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-		"username": username,
-		"exp":      time.Now().Add(time.Hour * 24).Unix(), // Token expires in 24 hours
+		"id":  id,
+		"exp": time.Now().Add(time.Hour * 24).Unix(), // Token expires in 24 hours
 	})
 
 	tokenString, err := token.SignedString([]byte(os.Getenv("JWT_SECRET")))
