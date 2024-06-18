@@ -13,7 +13,7 @@ import (
 // /////////////////////////////////////////////////////////////////////////////////////
 type UserInfo struct {
 	ID         string `json:"id"`
-	FullName   string `json:"fullName"`
+	FullName   string `json:"fullname"`
 	ProfilePic string `json:"profilePic"`
 }
 type User struct {
@@ -36,7 +36,7 @@ type UserPlain struct {
 	Password        string `json:"password,omitempty"`
 	ConfirmPassword string `json:"confirmPassword,omitempty"`
 	Gender          string `json:"gender,omitempty"`
-	ProfilePic      string `json:"profile_picture,omitempty"`
+	ProfilePic      string `json:"profilePic,omitempty"`
 }
 
 type PostgresUser struct {
@@ -74,6 +74,13 @@ type MessagePlain struct {
 	FilePath   string    `json:"filePath,omitempty"`
 }
 
+type MessageType struct {
+	ID          string    `json:"id"`
+	Body        string    `json:"body"`
+	SenderID    string    `json:"senderId"`
+	CreatedAt   time.Time `json:"createdAt"`
+	ShouldShake *bool     `json:"shouldShake,omitempty"`
+}
 type PostgresMessage struct {
 	db *gorm.DB
 }

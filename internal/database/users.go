@@ -162,6 +162,7 @@ func (pu *PostgresUser) Login(u *UserPlain, w http.ResponseWriter) error {
 			FullName:   existingUser.FullName,
 			Username:   existingUser.Username,
 			ProfilePic: existingUser.ProfilePic,
+			Gender:     string(existingUser.Gender),
 		},
 	)
 }
@@ -207,6 +208,7 @@ func (u *PostgresUser) GetMe(id string, w http.ResponseWriter) error {
 			FullName:   existingUser.FullName,
 			Username:   existingUser.Username,
 			ProfilePic: existingUser.ProfilePic,
+			Gender:     string(existingUser.Gender),
 		},
 	)
 }

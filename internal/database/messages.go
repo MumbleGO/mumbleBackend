@@ -82,14 +82,17 @@ func (m *PostgresMessage) SendMessage(
 }
 
 // /////////////////////////////////////////////////////////////////////////////////////
+
 func (m *PostgresMessage) GetMessage(toChat string, senderID string, w http.ResponseWriter) error {
 	var conversation Conversation
 
+	// Modified Query
 	err := m.db.Preload("Messages", func(db *gorm.DB) *gorm.DB {
 		return db.Order("created_at ASC")
 	}).
-		Joins("JOIN conversation_participants cp ON cp.conversation_id = conversations.id").
-		Where("cp.user_id IN (?)", []string{senderID, toChat}).
+		Joins("JOIN conversation_participants cp1 ON cp1.conversation_id = conversations.id").
+		Joins("JOIN conversation_participants cp2 ON cp2.conversation_id = conversations.id").
+		Where("cp1.user_id = ? AND cp2.user_id = ?", senderID, toChat).
 		Group("conversations.id").
 		Find(&conversation).Error
 	if err != nil {
@@ -104,7 +107,17 @@ func (m *PostgresMessage) GetMessage(toChat string, senderID string, w http.Resp
 		return utils.WriteJson(w, http.StatusOK, []interface{}{})
 	}
 
-	return utils.WriteJson(w, http.StatusOK, conversation.Messages)
+	var messageArr []MessageType
+	for _, mess := range conversation.Messages {
+		message := MessageType{
+			ID:        mess.ID,
+			Body:      mess.Body,
+			SenderID:  mess.SenderID,
+			CreatedAt: mess.CreatedAt,
+		}
+		messageArr = append(messageArr, message)
+	}
+	return utils.WriteJson(w, http.StatusOK, messageArr)
 }
 
 // ////////////////////////////////////////////////////////////////////////////////////
