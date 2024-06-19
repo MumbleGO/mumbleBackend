@@ -64,6 +64,14 @@ type Message struct {
 	CreatedAt      time.Time `gorm:"autoCreateTime"`
 	UpdatedAt      time.Time `gorm:"autoUpdateTime"`
 }
+type SendMessage struct {
+	ID             string    `json:"id"`
+	ConversationID string    `json:"conversationId"`
+	SenderID       string    `json:"senderId"`
+	Body           string    `json:"body"`
+	CreatedAt      time.Time `json:"createdAt"`
+	UpdatedAt      time.Time `json:"updatedAt"`
+}
 type MessagePlain struct {
 	ID         uuid.UUID `json:"id,omitempty"`
 	SenderID   uuid.UUID `json:"sender_id,omitempty"`

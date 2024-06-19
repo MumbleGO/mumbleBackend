@@ -77,8 +77,16 @@ func (m *PostgresMessage) SendMessage(
 	if err != nil {
 		return err
 	}
+	messa := SendMessage{
+		ID:             newMessage.ID,
+		ConversationID: newMessage.ConversationID,
+		SenderID:       newMessage.SenderID,
+		Body:           newMessage.Body,
+		CreatedAt:      newMessage.CreatedAt,
+		UpdatedAt:      newMessage.UpdatedAt,
+	}
 
-	return utils.WriteJson(w, http.StatusCreated, &newMessage)
+	return utils.WriteJson(w, http.StatusCreated, messa)
 }
 
 // /////////////////////////////////////////////////////////////////////////////////////

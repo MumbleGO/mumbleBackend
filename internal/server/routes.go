@@ -12,6 +12,7 @@ import (
 
 func (s *Server) Handlers() *mux.Router {
 	router := mux.NewRouter()
+	router.Use(middleware.CORSMiddleware)
 
 	router.HandleFunc("/api/auth/signup", utils.MakeHTTPHandleFunc(s.handleSignUp)).Methods("POST")
 	router.HandleFunc("/api/auth/login", utils.MakeHTTPHandleFunc(s.handleLogin)).Methods("POST")
@@ -27,7 +28,7 @@ func (s *Server) Handlers() *mux.Router {
 
 	router.Handle("/api/message/{id}", middleware.AuthMiddleware(utils.MakeHTTPHandleFunc(s.handleGetMessage))).
 		Methods("GET")
-
+router.HandleFunc("/ws",s.handleWS)
 	return router
 }
 
@@ -95,6 +96,7 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
+	handleSendMessageWS(w,r,senderID,receiverID)
 
 	return nil
 }
@@ -124,4 +126,9 @@ func getID(r *http.Request) (string, string) {
 	userToChatID := mux.Vars(r)["id"]
 	senderID := r.Context().Value("id").(string)
 	return userToChatID, senderID
+}
+
+
+func( s *Server)handleWS(w http.ResponseWriter,r *http.Request){
+	handleWebSocket(w,r)
 }
