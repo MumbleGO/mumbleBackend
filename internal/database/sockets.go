@@ -1,8 +1,6 @@
-package server
+package database
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"sync"
@@ -21,16 +19,17 @@ var upgrader = websocket.Upgrader{
 	},
 }
 
-type Message struct {
+type Messagews struct {
 	Type    string   `json:"type"`
 	Content []string `json:"content"`
 }
 
 type NewMessage struct {
-	Id        string    `json:"id"`
-	Body      string    `json:"body"`
-	SenderId  string    `json:"senderId"`
-	CreatedAt time.Time `json:"createdAt"`
+	Id          string    `json:"id"`
+	Body        string    `json:"body"`
+	SenderId    string    `json:"senderId"`
+	CreatedAt   time.Time `json:"createdAt"`
+	ShouldShake bool      `json:"shouldShake,omitempty"`
 }
 
 var userSocketMap = struct {
@@ -38,7 +37,7 @@ var userSocketMap = struct {
 	connections map[string]*websocket.Conn
 }{connections: make(map[string]*websocket.Conn)}
 
-func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		log.Println("Upgrade error:", err)
@@ -84,11 +83,10 @@ func broadcastOnlineUsers() {
 	}
 	userSocketMap.RUnlock()
 
-	message := Message{
+	message := Messagews{
 		Type:    "getOnlineUsers",
 		Content: onlineUsers,
 	}
-	fmt.Println(message)
 
 	for userId, conn := range userSocketMap.connections {
 		if err := conn.WriteJSON(message); err != nil {
@@ -103,44 +101,19 @@ func broadcastOnlineUsers() {
 	}
 }
 
-func handleSendMessageWS(w http.ResponseWriter, r *http.Request, sender string, receiver string) {
-	senderId := sender
-	receiverId := receiver
-
-	if senderId == "" || receiverId == "" {
-		http.Error(w, "Missing senderId or receiverId", http.StatusBadRequest)
-		return
-	}
-
-	var newMessage struct {
-		Content string `json:"content"`
-	}
-	if err := json.NewDecoder(r.Body).Decode(&newMessage); err != nil {
-		http.Error(w, "Invalid request payload", http.StatusBadRequest)
-		return
-	}
-
+func notifyReceiver(receiverId string, newMessage Message) {
 	userSocketMap.RLock()
-	receiverConn, exists := userSocketMap.connections[receiverId]
-	userSocketMap.RUnlock()
+	defer userSocketMap.RUnlock()
 
-	if exists {
+	if conn, ok := userSocketMap.connections[receiverId]; ok {
 		message := NewMessage{
-			Id:        receiverId,
-			SenderId:  senderId,
-			Body:      newMessage.Content,
-			CreatedAt: time.Now(),
+			Id:        newMessage.ID,
+			Body:      newMessage.Body,
+			SenderId:  newMessage.SenderID,
+			CreatedAt: newMessage.CreatedAt,
 		}
-
-		err := receiverConn.WriteJSON(message)
-		if err != nil {
-			log.Printf("Error sending message to %s: %v", receiverId, err)
-			http.Error(w, "Error sending message", http.StatusInternalServerError)
-			return
+		if err := conn.WriteJSON(message); err != nil {
+			log.Printf("Error sending message to receiver %s: %v", receiverId, err)
 		}
-
-		json.NewEncoder(w).Encode(message)
-	} else {
-		http.Error(w, "User not connected", http.StatusNotFound)
 	}
 }

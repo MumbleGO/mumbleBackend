@@ -77,6 +77,7 @@ func (m *PostgresMessage) SendMessage(
 	if err != nil {
 		return err
 	}
+	notifyReceiver(receiverId, newMessage)
 	messa := SendMessage{
 		ID:             newMessage.ID,
 		ConversationID: newMessage.ConversationID,

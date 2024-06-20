@@ -28,7 +28,7 @@ func (s *Server) Handlers() *mux.Router {
 
 	router.Handle("/api/message/{id}", middleware.AuthMiddleware(utils.MakeHTTPHandleFunc(s.handleGetMessage))).
 		Methods("GET")
-router.HandleFunc("/ws",s.handleWS)
+	router.HandleFunc("/ws", s.handleWS)
 	return router
 }
 
@@ -96,7 +96,6 @@ func (s *Server) handleSendMessage(w http.ResponseWriter, r *http.Request) error
 	if err != nil {
 		return err
 	}
-	handleSendMessageWS(w,r,senderID,receiverID)
 
 	return nil
 }
@@ -128,7 +127,6 @@ func getID(r *http.Request) (string, string) {
 	return userToChatID, senderID
 }
 
-
-func( s *Server)handleWS(w http.ResponseWriter,r *http.Request){
-	handleWebSocket(w,r)
+func (s *Server) handleWS(w http.ResponseWriter, r *http.Request) {
+	database.HandleWebSocket(w, r)
 }
