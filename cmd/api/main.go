@@ -1,9 +1,7 @@
 package main
 
 import (
-	"fmt"
 	"log"
-	"os"
 
 	"github.com/joho/godotenv"
 
@@ -13,7 +11,7 @@ import (
 
 func main() {
 	godotenv.Load()
-	addr := fmt.Sprintf(":%d", os.Getenv("PORT"))
+	addr := ":3000"
 	database.Migrate()
 	userDB, err := database.NewPostgresUser()
 	if err != nil {
