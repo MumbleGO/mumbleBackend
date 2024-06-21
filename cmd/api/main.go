@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 
@@ -12,6 +13,7 @@ import (
 
 func main() {
 	godotenv.Load()
+	addr := fmt.Sprintf(":%d", os.Getenv("PORT"))
 	database.Migrate()
 	userDB, err := database.NewPostgresUser()
 	if err != nil {
@@ -21,6 +23,6 @@ func main() {
 	if err != nil {
 		log.Println(err)
 	}
-	ser := server.NewServer(os.Getenv("PORT"), userDB, messageDB)
+	ser := server.NewServer(addr, userDB, messageDB)
 	ser.Run()
 }
