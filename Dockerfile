@@ -4,7 +4,6 @@ FROM golang:1.22.4 AS builder
 WORKDIR /workspace
 
 COPY go.mod go.sum ./
-
 RUN go mod download
 
 COPY . .
@@ -22,5 +21,7 @@ COPY --from=builder /workspace/out/app /app/app
 
 ENTRYPOINT ["/app/app"]
 
-EXPOSE 3000
+CMD ["sh", "-c", "exec /app/app -port=$PORT"]
+
+EXPOSE $PORT
 
