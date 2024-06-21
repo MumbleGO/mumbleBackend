@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	godotenv.Load("./../../.env")
+	godotenv.Load()
 	database.Migrate()
 	userDB, err := database.NewPostgresUser()
 	if err != nil {
